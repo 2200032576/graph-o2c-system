@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# Secrets
+.env
+
+# Neo4j / local files
+data/
+*.db
+
+# OS
+.DS_Store
+Thumbs.db
