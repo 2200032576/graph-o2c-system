@@ -1,10 +1,13 @@
 import os
 from groq import Groq
 
-# ==============================
-# 🔑 CLIENT
-# ==============================
-client = Groq(api_key=os.getenv("GROQ_API_KEY", ""))
+try:
+    import streamlit as st
+    _groq_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY", "")
+except Exception:
+    _groq_key = os.getenv("GROQ_API_KEY", "")
+
+client = Groq(api_key=_groq_key)
 
 
 # ==============================

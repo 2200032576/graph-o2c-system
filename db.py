@@ -1,9 +1,15 @@
 import os
 from neo4j import GraphDatabase
 
-NEO4J_URI      = os.getenv("NEO4J_URI",      "bolt://localhost:7687")
-NEO4J_USERNAME = os.getenv("NEO4J_USERNAME", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password")
+try:
+    import streamlit as st
+    NEO4J_URI      = st.secrets.get("NEO4J_URI",      os.getenv("NEO4J_URI",      "bolt://localhost:7687"))
+    NEO4J_USERNAME = st.secrets.get("NEO4J_USERNAME", os.getenv("NEO4J_USERNAME", "neo4j"))
+    NEO4J_PASSWORD = st.secrets.get("NEO4J_PASSWORD", os.getenv("NEO4J_PASSWORD", "password"))
+except Exception:
+    NEO4J_URI      = os.getenv("NEO4J_URI",      "bolt://localhost:7687")
+    NEO4J_USERNAME = os.getenv("NEO4J_USERNAME", "neo4j")
+    NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password")
 
 driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USERNAME, NEO4J_PASSWORD))
 
