@@ -1,3 +1,4 @@
+streamlit
 fastapi
 uvicorn
 neo4j
@@ -5,3 +6,4 @@ pandas
 python-dotenv
 requests
 pyvis
+groq
