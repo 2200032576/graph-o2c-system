@@ -158,11 +158,29 @@ with st.sidebar:
     # Example queries
     st.markdown('<div class="section-title">Example Queries</div>', unsafe_allow_html=True)
     examples = [
-        "Which products are associated with the highest number of billing documents?",
-        "Trace the full flow of billing document 90000001",
-        "Show sales orders that were delivered but not billed",
-        "Which customers have placed the most orders?",
-        "Show invoices with no payment",
+    # Basic
+    "Which invoices are unpaid?",
+    "Show all customers",
+    "Show all sales orders",
+    # Business Insights
+    "Show items that are delivered but not billed",
+    "Show deliveries without invoices",
+    "Show orders without items",
+    # Analytics
+    "Which products appear most in invoices?",
+    "Which customers have the most orders?",
+    "Show top 5 invoices by amount",
+    # Flow
+    "Trace full flow of an order",
+    "Show complete lifecycle from customer to payment",
+    "Show order to payment journey",
+    # Edge Cases
+    "Find items that are billed but not delivered",
+    "Which invoices have no payments?",
+    "Show items not delivered",
+    # Deployment Test
+    "Show all invoices",
+    "Show all products",
     ]
     for ex in examples:
         if st.button(ex, key=ex, use_container_width=True):
