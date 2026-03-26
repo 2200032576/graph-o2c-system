@@ -4,3 +4,4 @@ neo4j
 pandas
 python-dotenv
 requests
+pyvis
