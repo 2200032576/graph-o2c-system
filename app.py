@@ -158,29 +158,29 @@ with st.sidebar:
     # Example queries
     st.markdown('<div class="section-title">Example Queries</div>', unsafe_allow_html=True)
     examples = [
-    # Basic
-    "Which invoices are unpaid?",
-    "Show all customers",
-    "Show all sales orders",
-    # Business Insights
-    "Show items that are delivered but not billed",
-    "Show deliveries without invoices",
-    "Show orders without items",
-    # Analytics
-    "Which products appear most in invoices?",
-    "Which customers have the most orders?",
-    "Show top 5 invoices by amount",
-    # Flow
-    "Trace full flow of an order",
-    "Show complete lifecycle from customer to payment",
-    "Show order to payment journey",
-    # Edge Cases
-    "Find items that are billed but not delivered",
-    "Which invoices have no payments?",
-    "Show items not delivered",
-    # Deployment Test
-    "Show all invoices",
-    "Show all products",
+        # Basic
+        "Which invoices are unpaid?",
+        "Show all customers",
+        "Show all sales orders",
+        # Business Insights
+        "Show items that are delivered but not billed",
+        "Show deliveries without invoices",
+        "Show orders without items",
+        # Analytics
+        "Which products appear most in invoices?",
+        "Which customers have the most orders?",
+        "Show top 5 invoices by amount",
+        # Flow
+        "Trace full flow of an order",
+        "Show complete lifecycle from customer to payment",
+        "Show order to payment journey",
+        # Edge Cases
+        "Find items that are billed but not delivered",
+        "Which invoices have no payments?",
+        "Show items not delivered",
+        # Deployment Test
+        "Show all invoices",
+        "Show all products",
     ]
     for ex in examples:
         if st.button(ex, key=ex, use_container_width=True):
@@ -284,14 +284,23 @@ with right_col:
 
     # Input — pick up pending query from sidebar buttons
     default_val = st.session_state.pop("pending_query", "") if st.session_state.get("pending_query") else ""
-    user_input  = st.text_input(
-        "Ask a question…",
-        value=default_val,
-        placeholder="e.g. Which products appear in the most invoices?",
-        key="chat_input",
-        label_visibility="collapsed",
-    )
-    send = st.button("Send ➤", use_container_width=True, type="primary")
+
+    col1, col2 = st.columns([5, 1])
+    with col1:
+        user_input = st.text_input(
+            "Ask a question…",
+            value=default_val,
+            placeholder="e.g. Which products appear in the most invoices?",
+            key="chat_input",
+            label_visibility="collapsed",
+        )
+    with col2:
+        send = st.button("Send ➤", use_container_width=True, type="primary")
+
+    # Trigger on Enter key too
+    if user_input and user_input != st.session_state.get("last_input", ""):
+        send = True
+        st.session_state["last_input"] = user_input
 
     if send and user_input.strip():
         question = user_input.strip()
