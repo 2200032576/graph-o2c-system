@@ -41,6 +41,10 @@ st.markdown("""
   .metric-card .lbl { font-size: 12px; color: #8899aa; margin-top: 2px; }
   .section-title { color: #94a3b8; font-size: 11px; font-weight: 600;
     letter-spacing: 1px; text-transform: uppercase; margin: 16px 0 8px; }
+  .highlight-notice {
+    background: #1a2a1a; border: 1px solid #22c55e; border-radius: 8px;
+    padding: 8px 12px; font-size: 12px; color: #22c55e; margin: 6px 0;
+  }
 </style>
 """, unsafe_allow_html=True)
 
@@ -57,7 +61,7 @@ NODE_COLORS = {
 DEFAULT_COLOR = "#94a3b8"
 
 # ── Pyvis graph builder ──────────────────────────────────────────────────────
-def build_graph_html(rows: list, height: str = "520px") -> str:
+def build_graph_html(rows: list, height: str = "520px", highlight_ids: set = None) -> str:
     net = Network(height=height, width="100%", bgcolor="#0f1117", font_color="#e2e8f0")
     net.set_options("""
     {
@@ -104,16 +108,24 @@ def build_graph_html(rows: list, height: str = "520px") -> str:
 
         if src_id not in seen_nodes:
             color = NODE_COLORS.get(src_label, DEFAULT_COLOR)
+            is_highlighted = highlight_ids and src_name in highlight_ids
             net.add_node(src_id, label=src_name[:18],
                          title=f"{src_label}: {src_name}",
-                         color=color, size=18)
+                         color={"background": "#facc15" if is_highlighted else color,
+                                "border": "#ffffff" if is_highlighted else color},
+                         size=32 if is_highlighted else 18,
+                         borderWidth=4 if is_highlighted else 1.5)
             seen_nodes.add(src_id)
 
         if tgt_id not in seen_nodes:
             color = NODE_COLORS.get(tgt_label, DEFAULT_COLOR)
+            is_highlighted = highlight_ids and tgt_name in highlight_ids
             net.add_node(tgt_id, label=tgt_name[:18],
                          title=f"{tgt_label}: {tgt_name}",
-                         color=color, size=18)
+                         color={"background": "#facc15" if is_highlighted else color,
+                                "border": "#ffffff" if is_highlighted else color},
+                         size=32 if is_highlighted else 18,
+                         borderWidth=4 if is_highlighted else 1.5)
             seen_nodes.add(tgt_id)
 
         edge_key = (src_id, tgt_id, rel)
@@ -124,7 +136,7 @@ def build_graph_html(rows: list, height: str = "520px") -> str:
     import tempfile, os
     with tempfile.NamedTemporaryFile(delete=False, suffix=".html", mode="w", encoding="utf-8") as f:
         net.save_graph(f.name)
-        html = f.read() if False else open(f.name, encoding="utf-8").read()
+        html = open(f.name, encoding="utf-8").read()
     os.unlink(f.name)
     return html
 
@@ -137,10 +149,10 @@ with st.sidebar:
     st.markdown('<div class="section-title">Graph Stats</div>', unsafe_allow_html=True)
     try:
         counts = {
-            "Customer":      run_query("MATCH (n:Customer) RETURN count(n) AS c")[0]["c"],
-            "SalesOrder":    run_query("MATCH (n:SalesOrder) RETURN count(n) AS c")[0]["c"],
-            "Invoice":       run_query("MATCH (n:Invoice) RETURN count(n) AS c")[0]["c"],
-            "Payment":       run_query("MATCH (n:Payment) RETURN count(n) AS c")[0]["c"],
+            "Customer":   run_query("MATCH (n:Customer) RETURN count(n) AS c")[0]["c"],
+            "SalesOrder": run_query("MATCH (n:SalesOrder) RETURN count(n) AS c")[0]["c"],
+            "Invoice":    run_query("MATCH (n:Invoice) RETURN count(n) AS c")[0]["c"],
+            "Payment":    run_query("MATCH (n:Payment) RETURN count(n) AS c")[0]["c"],
         }
         cols = st.columns(2)
         for i, (label, cnt) in enumerate(counts.items()):
@@ -158,33 +170,35 @@ with st.sidebar:
     # Example queries
     st.markdown('<div class="section-title">Example Queries</div>', unsafe_allow_html=True)
     examples = [
-        # Basic
         "Which invoices are unpaid?",
         "Show all customers",
         "Show all sales orders",
-        # Business Insights
         "Show items that are delivered but not billed",
         "Show deliveries without invoices",
         "Show orders without items",
-        # Analytics
         "Which products appear most in invoices?",
         "Which customers have the most orders?",
         "Show top 5 invoices by amount",
-        # Flow
         "Trace full flow of an order",
         "Show complete lifecycle from customer to payment",
         "Show order to payment journey",
-        # Edge Cases
         "Find items that are billed but not delivered",
         "Which invoices have no payments?",
         "Show items not delivered",
-        # Deployment Test
         "Show all invoices",
         "Show all products",
     ]
     for ex in examples:
         if st.button(ex, key=ex, use_container_width=True):
             st.session_state["pending_query"] = ex
+
+    st.markdown("---")
+
+    # Clear highlights button
+    if st.button("🔄 Clear Highlights", use_container_width=True):
+        st.session_state.highlight_ids = set()
+        st.cache_data.clear()
+        st.rerun()
 
     st.markdown("---")
     st.markdown('<div class="section-title">Legend</div>', unsafe_allow_html=True)
@@ -195,6 +209,20 @@ with st.sidebar:
             f'<span style="font-size:12px;color:#94a3b8">{label}</span><br>',
             unsafe_allow_html=True
         )
+    st.markdown(
+        f'<span style="display:inline-block;width:10px;height:10px;'
+        f'border-radius:50%;background:#facc15;margin-right:6px"></span>'
+        f'<span style="font-size:12px;color:#facc15">Highlighted (query result)</span><br>',
+        unsafe_allow_html=True
+    )
+
+# ── Session state init ────────────────────────────────────────────────────────
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "pending_query" not in st.session_state:
+    st.session_state.pending_query = ""
+if "highlight_ids" not in st.session_state:
+    st.session_state.highlight_ids = set()
 
 # ── Main layout: two columns ─────────────────────────────────────────────────
 left_col, right_col = st.columns([6, 5], gap="medium")
@@ -202,6 +230,13 @@ left_col, right_col = st.columns([6, 5], gap="medium")
 # ── LEFT: Graph Visualizer ───────────────────────────────────────────────────
 with left_col:
     st.markdown("### 🕸️ Graph Explorer")
+
+    # Show highlight notice if active
+    if st.session_state.highlight_ids:
+        st.markdown(
+            f'<div class="highlight-notice">✨ {len(st.session_state.highlight_ids)} nodes highlighted from last query — yellow nodes are your results</div>',
+            unsafe_allow_html=True
+        )
 
     graph_tabs = st.tabs(["Overview", "Expand Node"])
 
@@ -218,7 +253,11 @@ with left_col:
             try:
                 rows = cached_graph(graph_limit)
                 if rows:
-                    html = build_graph_html(rows, height="480px")
+                    html = build_graph_html(
+                        rows,
+                        height="480px",
+                        highlight_ids=st.session_state.get("highlight_ids", set())
+                    )
                     components.html(html, height=490, scrolling=False)
                     st.caption(f"{len(rows)} relationships shown")
                 else:
@@ -245,12 +284,6 @@ with left_col:
 # ── RIGHT: Chat Interface ────────────────────────────────────────────────────
 with right_col:
     st.markdown("### 💬 Natural Language Query")
-
-    # Session state
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-    if "pending_query" not in st.session_state:
-        st.session_state.pending_query = ""
 
     # Chat history display
     chat_container = st.container()
@@ -282,7 +315,7 @@ with right_col:
 
     st.markdown("---")
 
-    # Input — pick up pending query from sidebar buttons
+    # Input
     default_val = st.session_state.pop("pending_query", "") if st.session_state.get("pending_query") else ""
 
     col1, col2 = st.columns([5, 1])
@@ -297,19 +330,15 @@ with right_col:
     with col2:
         send = st.button("Send ➤", use_container_width=True, type="primary")
 
-    # Trigger on Enter key too
     if user_input and user_input != st.session_state.get("last_input", ""):
         send = True
         st.session_state["last_input"] = user_input
 
     if send and user_input.strip():
         question = user_input.strip()
-
-        # Add user message
         st.session_state.messages.append({"role": "user", "content": question})
 
         with st.spinner("Thinking..."):
-            # Guardrail check
             if not is_domain_query(question):
                 answer = ("⚠️ This system is designed to answer questions about the "
                           "O2C dataset only (orders, deliveries, invoices, payments, "
@@ -322,19 +351,22 @@ with right_col:
                 })
             else:
                 try:
-                    # Generate Cypher
                     cypher = generate_cypher(question)
 
-                    # Safety: read-only guard
                     forbidden = ["create", "delete", "set", "merge", "drop", "remove"]
                     if any(kw in cypher.lower() for kw in forbidden):
                         raise ValueError("Generated query contains write operations — blocked.")
 
-                    # Run query
                     results = run_query(cypher)
+                    answer  = generate_answer(question, cypher, results)
 
-                    # Generate NL answer
-                    answer = generate_answer(question, cypher, results)
+                    # Extract node IDs to highlight in graph
+                    highlight_ids = set()
+                    for row in results:
+                        for val in row.values():
+                            if val is not None:
+                                highlight_ids.add(str(val))
+                    st.session_state.highlight_ids = highlight_ids
 
                     st.session_state.messages.append({
                         "role":   "assistant",
