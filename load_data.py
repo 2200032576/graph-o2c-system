@@ -112,18 +112,19 @@ payments_df = pd.read_json(first_file(DATA_ROOT + "payments_accounts_receivable/
 print(f"Loading {len(payments_df)} Payments...")
 
 for _, row in payments_df.iterrows():
-    invoice_id = row.get("referenceDocument") or row.get("billingDocument") or row.get("assignmentReference")
-    if pd.isnull(invoice_id):
+    customer_id = str(row.get("customer", ""))
+    if not customer_id or customer_id == "nan":
         continue
     run_query("""
-    MERGE (b:Invoice {id: $bid})
+    MERGE (c:Customer {id: $cid})
     MERGE (p:Payment {id: $pid})
-      ON CREATE SET p.amount = $amt
-    MERGE (b)-[:PAID_BY]->(p)
+      ON CREATE SET p.amount = $amt, p.date = $date
+    MERGE (c)-[:MADE_PAYMENT]->(p)
     """, {
-        "bid": str(invoice_id),
+        "cid": customer_id,
         "pid": str(row.get("accountingDocument", "UNKNOWN")),
-        "amt": float(row.get("amount", 0)) if pd.notnull(row.get("amount")) else 0.0,
+        "amt": float(row.get("amountInTransactionCurrency", 0)),
+        "date": str(row.get("postingDate", "")),
     })
 print("✅ Payments inserted")
 
